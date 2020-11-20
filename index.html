@@ -22,7 +22,10 @@ var map = new mapboxgl.Map({
   center: [-79.2746, 42.2590], // starting position [lng, lat]
   zoom: 8 // starting zoom
 });
+
 map.on('load', function() {
+
+  map.addControl(new mapboxgl.NavigationControl())
 
   map.addSource('ugrrDataSource', {
     type: 'geojson',
