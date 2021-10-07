@@ -121,7 +121,7 @@ map.on('load', function() {
   });
 
   map.on('click', 'unclustered-point', function (e) {
-    let popupContent = '<a target="_blank" href="https://orbitist.space/ugrr/node/' + e.features[0].properties.nid + '">' + e.features[0].properties.firstName + ' ' + e.features[0].properties.lastName + '</a>'
+    let popupContent = e.features[0].properties.first_name + ' ' + e.features[0].properties.last_name
     var coordinates = e.features[0].geometry.coordinates.slice();
 
     while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
