@@ -1,0 +1,155 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>UGRR Map</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v1.12.0/mapbox-gl.css" rel="stylesheet" />
+  <style>
+  	body { margin: 0; padding: 0; }
+  	#map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1;}
+    #filters { position: absolute; top: 10px; left: 10px; z-index: 2; background-color: white; padding: 10px; border-radius: 4px;}
+    #filters p { margin: 0; padding: 0; cursor: pointer; font-family: sans-serif; margin: 4px; padding: 4px; border-radius: 4px; background-color: #eee; }
+    #filters p:hover { background-color: #333; color: #eee; }
+    #filters h2 {
+      font-size: 18px;
+      margin: 4px;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="filters">
+    <h2 style="text-align:center;">Filtered Views</h2>
+    <a href="ugrr.html"><p>UGRR</p></a>
+    <a href="abolitionist.html"><p>Abolitionist</p></a>
+    <a href="poc.html"><p>Persons of Color</p></a>
+    <a href="index.html"><p>All</p></a>
+  </div><!-- /#filters -->
+<script>
+var dataURL = 'https://orbitist.space/ugrr/data?field_operative_type_tid=11'
+
+mapboxgl.accessToken = 'pk.eyJ1Ijoib3JiaXRpc3QiLCJhIjoiYnpUTnJBdyJ9.uxgaJ0R9ZNsCcEnPNfo2ag';
+var map = new mapboxgl.Map({
+  container: 'map', // container id
+  style: 'mapbox://styles/orbitist/ckhp89wu9016d19p81161l07y', // style URL
+  center: [-79.2746, 42.2590], // starting position [lng, lat]
+  zoom: 8 // starting zoom
+});
+
+map.on('load', function() {
+
+  map.addControl(new mapboxgl.NavigationControl())
+
+  map.addSource('ugrrDataSource', {
+    type: 'geojson',
+    data: dataURL,
+    cluster: true,
+    clusterMaxZoom: 14,
+    clusterRadius: 50
+  });
+
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'ugrrDataSource',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': [
+        'step',
+        ['get', 'point_count'],
+        '#51bbd6',
+        100,
+        '#f1f075',
+        750,
+        '#f28cb1'
+      ],
+      'circle-radius': [
+        'step',
+        ['get', 'point_count'],
+        20,
+        100,
+        30,
+        750,
+        40
+      ]
+    }
+  });
+
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'ugrrDataSource',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+      'text-size': 12
+    }
+  });
+
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'ugrrDataSource',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': '#11b4da',
+      'circle-radius': 8,
+      'circle-stroke-width': 1,
+      'circle-stroke-color': '#fff'
+    }
+  });
+
+  map.on('click', 'clusters', function (e) {
+    var features = map.queryRenderedFeatures(e.point, {
+      layers: ['clusters']
+    });
+    var clusterId = features[0].properties.cluster_id;
+    map.getSource('ugrrDataSource').getClusterExpansionZoom(
+      clusterId,
+      function (err, zoom) {
+        if (err) return;
+
+        map.easeTo({
+          center: features[0].geometry.coordinates,
+          zoom: zoom
+        });
+      }
+    );
+  });
+
+  map.on('click', 'unclustered-point', function (e) {
+    let popupContent = '<a target="_blank" href="https://orbitist.space/ugrr/node/' + e.features[0].properties.nid + '">' + e.features[0].properties.firstName + ' ' + e.features[0].properties.lastName + '</a>'
+    var coordinates = e.features[0].geometry.coordinates.slice();
+
+    while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+      coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+    }
+    new mapboxgl.Popup()
+    .setLngLat(coordinates)
+    .setHTML(popupContent)
+    .addTo(map);
+  });
+
+  map.on('mouseenter', 'clusters', function () {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  map.on('mouseleave', 'clusters', function () {
+    map.getCanvas().style.cursor = '';
+  });
+
+  map.on('mouseenter', 'unclustered-point', function () {
+    map.getCanvas().style.cursor = 'pointer';
+  });
+
+  map.on('mouseleave', 'unclustered-point', function () {
+    map.getCanvas().style.cursor = '';
+  });
+
+})
+</script>
+</body>
+</html>
